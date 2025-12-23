@@ -50,56 +50,20 @@ const Home: React.FC<HomeProps> = ({ onNavigate, location, settings }) => {
         }
         setLocationName(name);
 
-        calculateNextPrayer(data.times);
+        // Initial set
+        setNextPrayer(getNextPrayer(data.times));
         setLoading(false);
       }).catch(() => setLoading(false));
     }
   }, [location, settings.adhan]);
 
-  useEffect(() => {
-    if (!nextPrayer) return;
+  // Ref to track the last prayer we played Audio for, to prevent loops
+  const lastPlayedRef = React.useRef<string | null>(null);
 
-    const timer = setInterval(() => {
-      const now = new Date();
-      const [h, m] = nextPrayer.time.split(':').map(Number);
-      const target = new Date();
-      target.setHours(h, m, 0, 0);
-
-      // Logic check for Adhan trigger (if within 1 second of target)
-      // Note: We need to be careful not to trigger repeatedly. 
-      // A simple way is to check if diff is between 0 and 1000.
-      // Or store 'lastPlayed' state. but setInterval runs every 1s.
-
-      const diff = target.getTime() - now.getTime();
-
-      // Trigger Adhan logic
-      if (Math.abs(diff) < 1500 && settings.adhan.notifications[nextPrayer.name]) {
-        const voice = ADHAN_OPTIONS.find(v => v.id === settings.adhan.voiceId) || ADHAN_OPTIONS[0];
-        let url = voice.url;
-        if (nextPrayer.name === 'Fajr' && voice.fajrUrl) {
-          url = voice.fajrUrl;
-        }
-        console.log(`Triggering Adhan for ${nextPrayer.name}`);
-        audioManager.play(url).catch(e => console.error("Auto-play failed", e));
-      }
-
-      if (target < now) target.setDate(target.getDate() + 1);
-
-      const remainingRef = target.getTime() - now.getTime();
-      const hours = Math.floor(remainingRef / (1000 * 60 * 60));
-      const minutes = Math.floor((remainingRef % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((remainingRef % (1000 * 60)) / 1000);
-
-      setRemainingTime(`${hours}h ${minutes}m ${seconds} s`);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [nextPrayer, settings.adhan]);
-
-  const calculateNextPrayer = (times: PrayerTimes) => {
+  // Consolidated logic to find the next upcoming prayer from a set of times
+  const getNextPrayer = (times: PrayerTimes) => {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
     const prayers = [
       { name: 'Fajr', time: times.Fajr },
       { name: 'Sunrise', time: times.Sunrise },
@@ -109,15 +73,120 @@ const Home: React.FC<HomeProps> = ({ onNavigate, location, settings }) => {
       { name: 'Isha', time: times.Isha }
     ];
 
-    for (let prayer of prayers) {
-      const [h, m] = prayer.time.split(':').map(Number);
+    // Find the first prayer that is in the future
+    for (let i = 0; i < prayers.length; i++) {
+      const [h, m] = prayers[i].time.split(':').map(Number);
       if (h * 60 + m > currentMinutes) {
-        setNextPrayer(prayer);
-        return;
+        return prayers[i];
       }
     }
-    setNextPrayer(prayers[0]);
+    // If none found, it's Fajr tomorrow (or back to Fajr today if we cycle)
+    // For display purposes, we usually show Fajr of next day, but logically 'Fajr' next.
+    return prayers[0];
   };
+
+  useEffect(() => {
+    if (location) {
+      setLoading(true);
+      fetchPrayerTimes(
+        location.lat,
+        location.lng,
+        settings.adhan.method,
+        settings.adhan.school,
+        settings.adhan.fajrAngle,
+        settings.adhan.ishaAngle,
+        settings.adhan.hijriAdjustment
+      ).then(data => {
+        setPrayerTimes(data.times);
+        setHijriDate(data.hijriDate);
+        setHijriArabic(data.hijriArabic);
+
+        let name = data.locationName.split('/')[1]?.replace('_', ' ') || 'Local Area';
+        if (!settings.adhan.autoLocation && settings.adhan.manualLocation?.address) {
+          name = settings.adhan.manualLocation.address.split(',')[0];
+        }
+        setLocationName(name);
+
+        // Initial set
+        setNextPrayer(getNextPrayer(data.times));
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    }
+  }, [location, settings.adhan]);
+
+  // Main Timer Loop: Updates Countdown AND Checks for Adhan Trigger
+  useEffect(() => {
+    if (!prayerTimes) return;
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      // Always recalculate next prayer to ensure we switch immediately when one passes
+      const upcoming = getNextPrayer(prayerTimes);
+      setNextPrayer(upcoming);
+
+      // --- Countdown Logic ---
+      const [h, m] = upcoming.time.split(':').map(Number);
+      const target = new Date();
+      target.setHours(h, m, 0, 0);
+      if (target < now) target.setDate(target.getDate() + 1);
+
+      const diff = target.getTime() - now.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setRemainingTime(`${hours}h ${minutes}m ${seconds}s`);
+
+      // --- Adhan Trigger Logic ---
+      // We check if we are VERY close to the prayer time (e.g., within the first minute)
+      // AND we haven't played it yet today.
+
+      // 1. Identification: Create a unique ID for this specific prayer instance (Name + Day)
+      const todayStr = now.toDateString();
+      const triggerId = `${upcoming.name}-${todayStr}`;
+
+      // 2. Check if we are currently IN the prayer time (target is effectively 'now' or just passed)
+      // Since 'upcoming' jumps to the NEXT one as soon as we pass the time, 
+      // we actually need to check if the *previous* one was just passed? 
+      // OR, we check if the difference is huge (meaning we just looped to tomorrow)?
+
+      // Simpler approach: Check if the *current wall clock time* matches any prayer time exactly.
+      const currentHM = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      // Find which prayer matches NOW
+      const activePrayer = Object.entries(prayerTimes).find(([name, time]) => {
+        // API returns HH:mm (24h). Our formatTime12h handles display, but data is 24h.
+        // time string in prayerTimes is "13:45" etc.
+        // AlAdhan API might return "13:45 (EST)" sometimes? No, usually usually just HH:mm.
+        // Let's ensure we match purely on time.
+        return time.split(' ')[0] === currentHM;
+      });
+
+      if (activePrayer) {
+        const [pName, pTime] = activePrayer;
+        const uniqueKey = `${pName}-${todayStr}`;
+
+        // If we haven't played it yet, and settings allow it
+        if (lastPlayedRef.current !== uniqueKey && settings.adhan.notifications[pName]) {
+          console.log(`Time match! Triggering ${pName}`);
+
+          const voice = ADHAN_OPTIONS.find(v => v.id === settings.adhan.voiceId) || ADHAN_OPTIONS[0];
+          let url = voice.url;
+          if (pName === 'Fajr' && voice.fajrUrl) {
+            url = voice.fajrUrl;
+          }
+
+          // Play
+          audioManager.play(url).catch(e => console.error("Auto-play blocked?", e));
+
+          // Mark as played so we don't spam it every second of this minute
+          lastPlayedRef.current = uniqueKey;
+        }
+      }
+
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [prayerTimes, settings.adhan]); // Re-bind if settings change (e.g. user toggles notification)
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f2f6f4] relative">
