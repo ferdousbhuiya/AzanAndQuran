@@ -27,7 +27,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     school: 0,
     fajrAngle: 18,
     ishaAngle: 18,
-    notifications: { Fajr: true, Dhuhr: true, Asr: true, Maghrib: true, Isha: true }
+    notifications: { Fajr: true, Dhuhr: true, Asr: true, Maghrib: true, Isha: true },
+    autoLocation: true
   },
   tasbihTarget: 33
 };
@@ -40,6 +41,7 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('noor_settings');
     return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
   });
+  const [activeDhikrFromDua, setActiveDhikrFromDua] = useState<{ title: string, text?: string, target: number, image?: string } | null>(null);
 
   useEffect(() => {
     // Attempt DB init
@@ -51,14 +53,21 @@ const App: React.FC = () => {
     // Fallback if DB hangs
     const timeout = setTimeout(() => setIsDbReady(true), 3000);
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (err) => {
-        console.warn("Geolocation denied, using default (Mecca)");
-        setLocation({ lat: 21.4225, lng: 39.8262 });
-      },
-      { timeout: 5000 }
-    );
+    if (settings.adhan.autoLocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => {
+          console.warn("Geolocation denied, using default (Mecca)");
+          setLocation({ lat: 21.4225, lng: 39.8262 });
+        },
+        { timeout: 5000 }
+      );
+    } else if (settings.adhan.manualLocation) {
+      setLocation({
+        lat: settings.adhan.manualLocation.lat,
+        lng: settings.adhan.manualLocation.lng
+      });
+    }
 
     return () => clearTimeout(timeout);
   }, []);
@@ -94,13 +103,16 @@ const App: React.FC = () => {
       case AppSection.Quran:
         return <Quran settings={settings.quran} />;
       case AppSection.Tasbih:
-        return <Tasbih />;
+        return <Tasbih initialDhikr={activeDhikrFromDua} onClearInitial={() => setActiveDhikrFromDua(null)} />;
       case AppSection.Adhan:
         return <Adhan location={location} settings={settings.adhan} onUpdateSettings={handleUpdateAdhanSettings} />;
       case AppSection.Calendar:
         return <Calendar onNavigate={setActiveSection} />;
       case AppSection.Dua:
-        return <DuaView onRecite={() => setActiveSection(AppSection.Tasbih)} />;
+        return <DuaView onRecite={(dua) => {
+          setActiveDhikrFromDua(dua);
+          setActiveSection(AppSection.Tasbih);
+        }} />;
       case AppSection.Qiblah:
         return <Qiblah location={location} />;
       case AppSection.Explore:

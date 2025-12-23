@@ -8,7 +8,12 @@ import {
   TrendingUp, Calendar as CalendarIcon
 } from 'lucide-react';
 
-const Tasbih: React.FC = () => {
+interface TasbihProps {
+  initialDhikr?: { title: string, text?: string, target: number, image?: string } | null;
+  onClearInitial?: () => void;
+}
+
+const Tasbih: React.FC<TasbihProps> = ({ initialDhikr, onClearInitial }) => {
   // Navigation & Data State
   const [view, setView] = useState<'list' | 'counter' | 'add'>('list');
   const [dhikrs, setDhikrs] = useState<DhikrItem[]>(() => {
@@ -40,7 +45,29 @@ const Tasbih: React.FC = () => {
 
   const activeDhikr = useMemo(() => dhikrs.find(d => d.id === activeDhikrId), [dhikrs, activeDhikrId]);
 
-  // --- Handlers ---
+  useEffect(() => {
+    if (initialDhikr) {
+      const existing = dhikrs.find(d => d.title === initialDhikr.title && d.targetCount === initialDhikr.target);
+      if (existing) {
+        setActiveDhikrId(existing.id);
+        setView('counter');
+      } else {
+        const newItem: DhikrItem = {
+          id: 'dua_' + Date.now(),
+          title: initialDhikr.title,
+          arabicText: initialDhikr.text,
+          targetCount: initialDhikr.target,
+          completedCount: 0,
+          image: initialDhikr.image,
+          date: new Date().toLocaleDateString()
+        };
+        setDhikrs(prev => [newItem, ...prev]);
+        setActiveDhikrId(newItem.id);
+        setView('counter');
+      }
+      onClearInitial?.();
+    }
+  }, [initialDhikr]);
 
   const handleIncrement = () => {
     if (!activeDhikrId) return;
@@ -186,25 +213,25 @@ const Tasbih: React.FC = () => {
             )}
           </div>
 
-          <div className="relative w-72 h-72 flex items-center justify-center mb-16">
+          <div className="relative w-64 h-64 flex items-center justify-center mb-10">
             <svg className="absolute inset-0 w-full h-full -rotate-90">
-              <circle cx="50%" cy="50%" r="46%" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="8" />
+              <circle cx="50%" cy="50%" r="45%" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="6" />
               <circle
-                cx="50%" cy="50%" r="46%" fill="none" stroke="#10b981" strokeWidth="12"
-                strokeDasharray="289%" strokeDashoffset={`${289 * (1 - progress / 100)}%`}
+                cx="50%" cy="50%" r="45%" fill="none" stroke="#10b981" strokeWidth="10"
+                strokeDasharray="283%" strokeDashoffset={`${283 * (1 - progress / 100)}%`}
                 strokeLinecap="round" className="transition-all duration-500 ease-out"
                 strokeOpacity={0.9}
               />
             </svg>
             <div className="text-center">
-              <span className="text-8xl font-black tabular-nums tracking-tighter text-emerald-50 block">{activeDhikr.completedCount}</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-900 bg-emerald-400/10 px-4 py-1.5 rounded-full">Taps</span>
+              <span className="text-7xl font-black tabular-nums tracking-tighter text-emerald-50 block">{activeDhikr.completedCount}</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-900 bg-emerald-400/10 px-3 py-1 rounded-full">Taps</span>
             </div>
           </div>
 
           <button
             onClick={handleIncrement}
-            className="w-64 h-64 rounded-full bg-gradient-to-tr from-emerald-950 via-emerald-800 to-emerald-600 shadow-[0_20px_100px_-20px_rgba(16,185,129,0.6)] active:scale-90 transition-all duration-75 flex items-center justify-center border-4 border-white/5 relative group overflow-hidden"
+            className="w-56 h-56 rounded-full bg-gradient-to-tr from-emerald-950 via-emerald-800 to-emerald-600 shadow-[0_20px_80px_-20px_rgba(16,185,129,0.5)] active:scale-95 transition-all duration-75 flex items-center justify-center border-4 border-white/5 relative group overflow-hidden"
           >
             <div className="absolute inset-0 bg-white/5 group-active:bg-transparent" />
             <span className="text-3xl font-black text-white drop-shadow-md uppercase tracking-[0.2em]">Tasbih</span>

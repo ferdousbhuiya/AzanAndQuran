@@ -58,6 +58,12 @@ export interface AdhanSettings {
   fajrAngle?: number;
   ishaAngle?: number;
   notifications: Record<string, boolean>;
+  autoLocation: boolean;
+  manualLocation?: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
 }
 
 export interface DhikrItem {

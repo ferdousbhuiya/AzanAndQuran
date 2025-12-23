@@ -83,6 +83,17 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
           </h2>
           <div className="bg-white p-8 rounded-[3.5rem] border border-white shadow-premium space-y-8">
             <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 ml-2">Arabic Font</label>
+              <select
+                value={localSettings.quran.fontFamily}
+                onChange={(e) => setLocalSettings({ ...localSettings, quran: { ...localSettings.quran, fontFamily: e.target.value as any } })}
+                className="w-full bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
+              >
+                {ARABIC_FONTS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+            </div>
+
+            <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 ml-2">Preferred Qari</label>
               <select
                 value={localSettings.quran.reciterId}
@@ -193,14 +204,78 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
             <Smartphone size={14} /> Interaction
           </h2>
           <div className="bg-white p-8 rounded-[3.5rem] border border-white shadow-premium">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-black text-slate-800 text-sm tracking-tight">Vibration Feedback</p>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Haptics on Dhikr completion</p>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-black text-slate-800 text-sm tracking-tight">Automatic Location</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Use GPS for prayer times</p>
+                </div>
+                <div
+                  onClick={() => setLocalSettings({ ...localSettings, adhan: { ...localSettings.adhan, autoLocation: !localSettings.adhan.autoLocation } })}
+                  className={`w-12 h-6 rounded-full relative p-1 cursor-pointer transition-colors ${localSettings.adhan.autoLocation ? 'bg-emerald-600' : 'bg-slate-200'}`}
+                >
+                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${localSettings.adhan.autoLocation ? 'translate-x-6' : 'translate-x-0'}`} />
+                </div>
               </div>
-              <div className="w-12 h-6 bg-emerald-100 rounded-full relative p-1 cursor-pointer">
-                <div className="w-4 h-4 bg-emerald-600 rounded-full" />
-              </div>
+
+              {!localSettings.adhan.autoLocation && (
+                <div className="animate-in slide-in-from-top duration-300">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 ml-2">Set Manual Address</label>
+                  <div className="flex gap-2">
+                    <input
+                      value={localSettings.adhan.manualLocation?.address || ''}
+                      onChange={(e) => setLocalSettings({
+                        ...localSettings,
+                        adhan: {
+                          ...localSettings.adhan,
+                          manualLocation: {
+                            ...(localSettings.adhan.manualLocation || { lat: 0, lng: 0, address: '' }),
+                            address: e.target.value
+                          }
+                        }
+                      })}
+                      placeholder="City, Country"
+                      className="flex-1 bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
+                    />
+                    <button
+                      onClick={async () => {
+                        const addr = localSettings.adhan.manualLocation?.address;
+                        if (!addr) return;
+                        try {
+                          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`);
+                          const data = await res.json();
+                          if (data && data[0]) {
+                            setLocalSettings({
+                              ...localSettings,
+                              adhan: {
+                                ...localSettings.adhan,
+                                manualLocation: {
+                                  address: data[0].display_name,
+                                  lat: parseFloat(data[0].lat),
+                                  lng: parseFloat(data[0].lon)
+                                }
+                              }
+                            });
+                            alert("Location updated successfully!");
+                          } else {
+                            alert("Location not found.");
+                          }
+                        } catch (e) {
+                          alert("Error searching location.");
+                        }
+                      }}
+                      className="bg-emerald-100 text-emerald-800 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                    >
+                      Find
+                    </button>
+                  </div>
+                  {localSettings.adhan.manualLocation?.lat !== 0 && (
+                    <p className="text-[9px] text-emerald-600 font-bold mt-2 ml-2 uppercase tracking-tighter">
+                      Coordinates: {localSettings.adhan.manualLocation?.lat.toFixed(4)}, {localSettings.adhan.manualLocation?.lng.toFixed(4)}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <button
