@@ -59,6 +59,7 @@ export interface AdhanSettings {
   school: number;
   fajrAngle?: number;
   ishaAngle?: number;
+  hijriAdjustment?: number;
   notifications: Record<string, boolean>;
   autoLocation: boolean;
   manualLocation?: {

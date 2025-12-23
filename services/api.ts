@@ -42,7 +42,8 @@ export const fetchPrayerTimes = async (
   method: number = 4,
   school: number = 0,
   fajrAngle?: number,
-  ishaAngle?: number
+  ishaAngle?: number,
+  hijriAdjustment?: number
 ): Promise<{ times: PrayerTimes; hijriDate: string; hijriArabic: string; locationName: string }> => {
   const dateStr = new Date().toISOString().split('T')[0];
 
@@ -53,7 +54,11 @@ export const fetchPrayerTimes = async (
     url += `&methodSettings=${settings}`;
   }
 
-  const cacheKey = `${dateStr}_${method}_${school}_${fajrAngle || 0}_${ishaAngle || 0}`;
+  if (hijriAdjustment !== undefined && hijriAdjustment !== 0) {
+    url += `&adjustment=${hijriAdjustment}`;
+  }
+
+  const cacheKey = `${dateStr}_${method}_${school}_${fajrAngle || 0}_${ishaAngle || 0}_${hijriAdjustment || 0}`;
   const localTimes = await db.getPrayerTimes(cacheKey);
 
   try {

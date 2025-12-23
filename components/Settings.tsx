@@ -216,6 +216,25 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
                 </select>
               </div>
 
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4 ml-2 flex justify-between">
+                  <span>Hijri Date Adjustment</span>
+                  <span className={`font-black ${localSettings.adhan.hijriAdjustment === 0 ? 'text-slate-400' : 'text-emerald-600'}`}>
+                    {localSettings.adhan.hijriAdjustment && localSettings.adhan.hijriAdjustment > 0 ? '+' : ''}{localSettings.adhan.hijriAdjustment || 0} Days
+                  </span>
+                </label>
+                <div className="flex items-center gap-4 bg-slate-50 rounded-2xl p-2 px-4">
+                  <span className="text-xs font-bold text-slate-400">-2</span>
+                  <input
+                    type="range" min="-2" max="2" step="1"
+                    value={localSettings.adhan.hijriAdjustment || 0}
+                    onChange={(e) => setLocalSettings({ ...localSettings, adhan: { ...localSettings.adhan, hijriAdjustment: parseInt(e.target.value) } })}
+                    className="w-full accent-emerald-600"
+                  />
+                  <span className="text-xs font-bold text-slate-400">+2</span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 {/* Adhan Voice Selection */}
                 <div>
@@ -293,109 +312,111 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
                   </button>
                 </div>
               </div>
-            </section>
+            </div>
+          </div>
+        </section>
 
-            {/* General Device Settings */}
-            <section>
-              <h2 className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 ml-4">
-                <Smartphone size={14} /> Interaction
-              </h2>
-              <div className="bg-white p-8 rounded-[3.5rem] border border-white shadow-premium">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-black text-slate-800 text-sm tracking-tight">Automatic Location</p>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Use GPS for prayer times</p>
-                    </div>
-                    <div
-                      onClick={() => setLocalSettings({ ...localSettings, adhan: { ...localSettings.adhan, autoLocation: !localSettings.adhan.autoLocation } })}
-                      className={`w-12 h-6 rounded-full relative p-1 cursor-pointer transition-colors ${localSettings.adhan.autoLocation ? 'bg-emerald-600' : 'bg-slate-200'}`}
+        {/* General Device Settings */}
+        <section>
+          <h2 className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 ml-4">
+            <Smartphone size={14} /> Interaction
+          </h2>
+          <div className="bg-white p-8 rounded-[3.5rem] border border-white shadow-premium">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-black text-slate-800 text-sm tracking-tight">Automatic Location</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Use GPS for prayer times</p>
+                </div>
+                <div
+                  onClick={() => setLocalSettings({ ...localSettings, adhan: { ...localSettings.adhan, autoLocation: !localSettings.adhan.autoLocation } })}
+                  className={`w-12 h-6 rounded-full relative p-1 cursor-pointer transition-colors ${localSettings.adhan.autoLocation ? 'bg-emerald-600' : 'bg-slate-200'}`}
+                >
+                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${localSettings.adhan.autoLocation ? 'translate-x-6' : 'translate-x-0'}`} />
+                </div>
+              </div>
+
+              {!localSettings.adhan.autoLocation && (
+                <div className="animate-in slide-in-from-top duration-300">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 ml-2">Set Manual Address</label>
+                  <div className="flex gap-2">
+                    <input
+                      value={localSettings.adhan.manualLocation?.address || ''}
+                      onChange={(e) => setLocalSettings({
+                        ...localSettings,
+                        adhan: {
+                          ...localSettings.adhan,
+                          manualLocation: {
+                            ...(localSettings.adhan.manualLocation || { lat: 0, lng: 0, address: '' }),
+                            address: e.target.value
+                          }
+                        }
+                      })}
+                      placeholder="City, Country"
+                      className="flex-1 bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
+                    />
+                    <button
+                      onClick={async () => {
+                        const addr = localSettings.adhan.manualLocation?.address;
+                        if (!addr) return;
+                        try {
+                          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`);
+                          const data = await res.json();
+                          if (data && data[0]) {
+                            setLocalSettings({
+                              ...localSettings,
+                              adhan: {
+                                ...localSettings.adhan,
+                                manualLocation: {
+                                  address: data[0].display_name,
+                                  lat: parseFloat(data[0].lat),
+                                  lng: parseFloat(data[0].lon)
+                                }
+                              }
+                            });
+                            alert("Location updated successfully!");
+                          } else {
+                            alert("Location not found.");
+                          }
+                        } catch (e) {
+                          alert("Error searching location.");
+                        }
+                      }}
+                      className="bg-emerald-100 text-emerald-800 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
                     >
-                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${localSettings.adhan.autoLocation ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </div>
+                      Find
+                    </button>
                   </div>
-
-                  {!localSettings.adhan.autoLocation && (
-                    <div className="animate-in slide-in-from-top duration-300">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 ml-2">Set Manual Address</label>
-                      <div className="flex gap-2">
-                        <input
-                          value={localSettings.adhan.manualLocation?.address || ''}
-                          onChange={(e) => setLocalSettings({
-                            ...localSettings,
-                            adhan: {
-                              ...localSettings.adhan,
-                              manualLocation: {
-                                ...(localSettings.adhan.manualLocation || { lat: 0, lng: 0, address: '' }),
-                                address: e.target.value
-                              }
-                            }
-                          })}
-                          placeholder="City, Country"
-                          className="flex-1 bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
-                        />
-                        <button
-                          onClick={async () => {
-                            const addr = localSettings.adhan.manualLocation?.address;
-                            if (!addr) return;
-                            try {
-                              const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`);
-                              const data = await res.json();
-                              if (data && data[0]) {
-                                setLocalSettings({
-                                  ...localSettings,
-                                  adhan: {
-                                    ...localSettings.adhan,
-                                    manualLocation: {
-                                      address: data[0].display_name,
-                                      lat: parseFloat(data[0].lat),
-                                      lng: parseFloat(data[0].lon)
-                                    }
-                                  }
-                                });
-                                alert("Location updated successfully!");
-                              } else {
-                                alert("Location not found.");
-                              }
-                            } catch (e) {
-                              alert("Error searching location.");
-                            }
-                          }}
-                          className="bg-emerald-100 text-emerald-800 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
-                        >
-                          Find
-                        </button>
-                      </div>
-                      {localSettings.adhan.manualLocation?.lat !== 0 && (
-                        <p className="text-[9px] text-emerald-600 font-bold mt-2 ml-2 uppercase tracking-tighter">
-                          Coordinates: {localSettings.adhan.manualLocation?.lat.toFixed(4)}, {localSettings.adhan.manualLocation?.lng.toFixed(4)}
-                        </p>
-                      )}
-                    </div>
+                  {localSettings.adhan.manualLocation?.lat !== 0 && (
+                    <p className="text-[9px] text-emerald-600 font-bold mt-2 ml-2 uppercase tracking-tighter">
+                      Coordinates: {localSettings.adhan.manualLocation?.lat.toFixed(4)}, {localSettings.adhan.manualLocation?.lng.toFixed(4)}
+                    </p>
                   )}
                 </div>
+              )}
+            </div>
 
-                <button
-                  onClick={() => window.location.reload()}
-                  className="w-full mt-8 p-5 bg-slate-50 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
-                >
-                  <RefreshCw size={16} className="text-slate-400 group-hover:rotate-180 transition-transform duration-500" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sync Local Database</span>
-                </button>
-              </div>
-            </section>
-
-            <footer className="text-center px-10">
-              <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em] mb-4">Noor Companion v1.2</p>
-              <div className="flex justify-center gap-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
-              </div>
-            </footer>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full mt-8 p-5 bg-slate-50 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
+            >
+              <RefreshCw size={16} className="text-slate-400 group-hover:rotate-180 transition-transform duration-500" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sync Local Database</span>
+            </button>
           </div>
+        </section>
+
+        <footer className="text-center px-10">
+          <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em] mb-4">Noor Companion v1.2</p>
+          <div className="flex justify-center gap-4">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
+          </div>
+        </footer>
       </div>
-      );
+    </div>
+  );
 };
 
-      export default SettingsView;
+export default SettingsView;
