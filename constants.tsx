@@ -19,7 +19,9 @@ export const ADHAN_STYLES = [
   { id: '2v', name: 'First 2 Verses' }
 ];
 
-export const ADHAN_OPTIONS = [
+import { AdhanOption } from './types';
+
+export const ADHAN_OPTIONS: AdhanOption[] = [
   {
     id: 'makkah',
     name: 'Makkah Al-Mukarramah',

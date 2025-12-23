@@ -110,3 +110,10 @@ export enum AppSection {
   Qiblah = 'qiblah',
   Settings = 'settings'
 }
+
+export interface AdhanOption {
+  id: string;
+  name: string;
+  url: string;
+  fajrUrl?: string;
+}
