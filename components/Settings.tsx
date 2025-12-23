@@ -58,7 +58,7 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
         console.log("Adhan playback started successfully.");
       }).catch((err) => {
         console.error("Adhan preview failed to play:", err);
-        alert("Audio playback failed. Please check your internet connection and ensure your browser allows sound.");
+        alert(`Audio playback failed: ${err.message || "Unknown error"}. Please check your connection.`);
         setIsPlaying(false);
       });
 

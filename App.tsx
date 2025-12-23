@@ -76,6 +76,10 @@ const App: React.FC = () => {
   }, [settings.adhan.autoLocation, settings.adhan.manualLocation]);
 
   useEffect(() => {
+    console.log("App: Location updated:", location);
+  }, [location]);
+
+  useEffect(() => {
     if (isDbReady) {
       const loader = document.getElementById('app-loader');
       if (loader) {

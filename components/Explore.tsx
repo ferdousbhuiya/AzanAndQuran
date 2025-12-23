@@ -74,6 +74,12 @@ const Explore: React.FC<ExploreProps> = ({ location }) => {
       <header className="mb-10">
         <h1 className="text-3xl font-black text-slate-800 tracking-tighter leading-none mb-2">Explore Nearby</h1>
         <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Find sacred places & halal food</p>
+
+        {/* DEBUG: Remove after fixing */}
+        <div className="mt-2 p-2 bg-slate-200 rounded text-[10px] font-mono text-slate-600">
+          Location: {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'Null'} <br />
+          API Key: {process.env.API_KEY ? 'Present' : 'Missing'}
+        </div>
       </header>
 
       {/* Toggle */}
