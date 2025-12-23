@@ -141,8 +141,11 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
     audioRef.current = audio;
     setIsPlaying(true);
 
-    audio.play().catch(e => {
+    audio.play().then(() => {
+      console.log("Adhan preview started:", selectedAdhan.url);
+    }).catch(e => {
       console.error("Preview failed", e);
+      alert("Audio playback failed. Please ensure your device volume is up and you have allowed sound for this site.");
       setIsPlaying(false);
     });
 

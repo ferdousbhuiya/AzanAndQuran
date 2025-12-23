@@ -30,17 +30,32 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
     }
 
     const voice = ADHAN_OPTIONS.find(v => v.id === localSettings.adhan.voiceId) || ADHAN_OPTIONS[0];
-    const audio = new Audio(voice.url);
-    audioRef.current = audio;
-    setIsPlaying(true);
-    audio.play().catch(() => setIsPlaying(false));
+    console.log("Playing Adhan preview from:", voice.url);
 
-    if (localSettings.adhan.styleId === '1v') {
-      setTimeout(() => { if (audioRef.current === audio) stopPreview(); }, 15000);
-    } else if (localSettings.adhan.styleId === '2v') {
-      setTimeout(() => { if (audioRef.current === audio) stopPreview(); }, 30000);
+    try {
+      const audio = new Audio(voice.url);
+      audio.crossOrigin = "anonymous";
+      audioRef.current = audio;
+      setIsPlaying(true);
+
+      audio.play().then(() => {
+        console.log("Adhan playback started successfully.");
+      }).catch((err) => {
+        console.error("Adhan preview failed to play:", err);
+        alert("Audio playback failed. Please check your internet connection and ensure your browser allows sound.");
+        setIsPlaying(false);
+      });
+
+      if (localSettings.adhan.styleId === '1v') {
+        setTimeout(() => { if (audioRef.current === audio) stopPreview(); }, 15000);
+      } else if (localSettings.adhan.styleId === '2v') {
+        setTimeout(() => { if (audioRef.current === audio) stopPreview(); }, 30000);
+      }
+      audio.onended = () => setIsPlaying(false);
+    } catch (e) {
+      console.error("Audio creation error:", e);
+      setIsPlaying(false);
     }
-    audio.onended = () => setIsPlaying(false);
   };
 
   React.useEffect(() => {
@@ -125,6 +140,27 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
                 value={localSettings.quran.fontSize}
                 onChange={(e) => setLocalSettings({ ...localSettings, quran: { ...localSettings.quran, fontSize: parseInt(e.target.value) } })}
                 className="w-full accent-emerald-600"
+              />
+            </div>
+
+            <div className="pt-6 border-t border-slate-50 space-y-4">
+              <ToggleItem
+                label="Continuous Recitation"
+                sub="Play next verse automatically"
+                active={localSettings.quran.continuousPlay}
+                onToggle={() => setLocalSettings({ ...localSettings, quran: { ...localSettings.quran, continuousPlay: !localSettings.quran.continuousPlay } })}
+              />
+              <ToggleItem
+                label="Show Translation"
+                sub="Display meaning below verses"
+                active={localSettings.quran.showTranslation}
+                onToggle={() => setLocalSettings({ ...localSettings, quran: { ...localSettings.quran, showTranslation: !localSettings.quran.showTranslation } })}
+              />
+              <ToggleItem
+                label="Auto-scroll"
+                sub="Follow recitation automatically"
+                active={localSettings.quran.autoScroll}
+                onToggle={() => setLocalSettings({ ...localSettings, quran: { ...localSettings.quran, autoScroll: !localSettings.quran.autoScroll } })}
               />
             </div>
           </div>
@@ -300,5 +336,20 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
     </div>
   );
 };
+
+const ToggleItem: React.FC<{ label: string, sub: string, active: boolean, onToggle: () => void }> = ({ label, sub, active, onToggle }) => (
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="font-black text-slate-800 text-[11px] tracking-tight uppercase">{label}</p>
+      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{sub}</p>
+    </div>
+    <div
+      onClick={onToggle}
+      className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${active ? 'bg-emerald-600' : 'bg-slate-200'}`}
+    >
+      <div className={`w-3 h-3 bg-white rounded-full transition-transform ${active ? 'translate-x-5' : 'translate-x-0'}`} />
+    </div>
+  </div>
+);
 
 export default SettingsView;

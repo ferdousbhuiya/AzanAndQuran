@@ -48,6 +48,8 @@ export interface QuranSettings {
   translationId: string;
   reciterId: string;
   continuousPlay: boolean;
+  showTranslation: boolean;
+  autoScroll: boolean;
 }
 
 export interface AdhanSettings {

@@ -18,12 +18,14 @@ const DEFAULT_SETTINGS: AppSettings = {
     fontFamily: 'Amiri',
     translationId: 'en.sahih',
     reciterId: 'ar.alafasy',
-    continuousPlay: true
+    continuousPlay: true,
+    showTranslation: true,
+    autoScroll: true
   },
   adhan: {
     voiceId: 'makkah',
     styleId: 'full',
-    method: 2,
+    method: 4,
     school: 0,
     fajrAngle: 18,
     ishaAngle: 18,
@@ -45,14 +47,17 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Attempt DB init
-    const dbPromise = db.init()
+    db.init()
       .then(() => console.log("DB Ready"))
       .catch(err => console.error("DB Error", err))
       .finally(() => setIsDbReady(true));
 
     // Fallback if DB hangs
     const timeout = setTimeout(() => setIsDbReady(true), 3000);
+    return () => clearTimeout(timeout);
+  }, []);
 
+  useEffect(() => {
     if (settings.adhan.autoLocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -68,9 +73,7 @@ const App: React.FC = () => {
         lng: settings.adhan.manualLocation.lng
       });
     }
-
-    return () => clearTimeout(timeout);
-  }, []);
+  }, [settings.adhan.autoLocation, settings.adhan.manualLocation]);
 
   useEffect(() => {
     if (isDbReady) {
@@ -99,7 +102,7 @@ const App: React.FC = () => {
   const renderSection = () => {
     switch (activeSection) {
       case AppSection.Home:
-        return <Home onNavigate={setActiveSection} location={location} />;
+        return <Home onNavigate={setActiveSection} location={location} settings={settings} />;
       case AppSection.Quran:
         return <Quran settings={settings.quran} />;
       case AppSection.Tasbih:

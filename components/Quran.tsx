@@ -120,16 +120,25 @@ const Quran: React.FC<QuranProps> = ({ settings }) => {
 
   const handlePlayAyah = (index: number) => {
     if (playingIndex === index) {
-      audioRef.current?.pause();
-      setPlayingIndex(null);
+      if (audioRef.current?.paused) audioRef.current.play();
+      else audioRef.current?.pause();
     } else {
       setPlayingIndex(index);
       if (audioRef.current) {
         audioRef.current.src = ayahs[index].audio;
-        audioRef.current.play();
+        audioRef.current.play().catch(e => console.error("Play failed", e));
       }
     }
   };
+
+  useEffect(() => {
+    if (playingIndex !== null && settings.autoScroll) {
+      const element = ayahRefs.current[ayahs[playingIndex].numberInSurah];
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [playingIndex, settings.autoScroll]);
 
   const nextSurah = () => {
     if (selectedSurah && selectedSurah.number < 114) {
@@ -224,9 +233,11 @@ const Quran: React.FC<QuranProps> = ({ settings }) => {
                     <p className="arabic-text text-right mb-8 leading-[2.6] font-bold text-slate-900" style={{ fontSize: `${settings.fontSize}px`, fontFamily: settings.fontFamily }}>
                       {cleanedText}
                     </p>
-                    <div className="text-slate-500 text-sm font-medium leading-relaxed italic border-t border-slate-50 pt-6">
-                      {ayah.translation}
-                    </div>
+                    {settings.showTranslation && (
+                      <div className="text-slate-500 text-sm font-medium leading-relaxed italic border-t border-slate-50 pt-6">
+                        {ayah.translation}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -249,7 +260,17 @@ const Quran: React.FC<QuranProps> = ({ settings }) => {
             </>
           )}
         </div>
-        <audio ref={audioRef} onEnded={() => setPlayingIndex(null)} className="hidden" />
+        <audio
+          ref={audioRef}
+          onEnded={() => {
+            if (settings.continuousPlay && playingIndex !== null && playingIndex < ayahs.length - 1) {
+              handlePlayAyah(playingIndex + 1);
+            } else {
+              setPlayingIndex(null);
+            }
+          }}
+          className="hidden"
+        />
 
         {showBookmarks && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-end justify-center" onClick={() => setShowBookmarks(false)}>
