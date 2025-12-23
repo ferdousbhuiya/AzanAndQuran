@@ -121,7 +121,8 @@ const Tasbih: React.FC<TasbihProps> = ({ initialDhikr, onClearInitial }) => {
       const transcript = event.results[0][0].transcript;
       setIsProcessingAI(true);
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || '';
+        const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
           contents: `Convert this Dhikr description into classical Arabic text only. Transcript: "${transcript}"`,
@@ -146,7 +147,8 @@ const Tasbih: React.FC<TasbihProps> = ({ initialDhikr, onClearInitial }) => {
         setNewImage(reader.result as string);
         setIsProcessingAI(true);
         try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+          const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || '';
+          const ai = new GoogleGenAI({ apiKey });
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: {
@@ -213,7 +215,7 @@ const Tasbih: React.FC<TasbihProps> = ({ initialDhikr, onClearInitial }) => {
             )}
           </div>
 
-          <div className="relative w-64 h-64 flex items-center justify-center mb-10">
+          <div className="relative w-52 h-52 flex items-center justify-center mb-10">
             <svg className="absolute inset-0 w-full h-full -rotate-90">
               <circle cx="50%" cy="50%" r="45%" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="6" />
               <circle
@@ -231,7 +233,7 @@ const Tasbih: React.FC<TasbihProps> = ({ initialDhikr, onClearInitial }) => {
 
           <button
             onClick={handleIncrement}
-            className="w-56 h-56 rounded-full bg-gradient-to-tr from-emerald-950 via-emerald-800 to-emerald-600 shadow-[0_20px_80px_-20px_rgba(16,185,129,0.5)] active:scale-95 transition-all duration-75 flex items-center justify-center border-4 border-white/5 relative group overflow-hidden"
+            className="w-44 h-44 rounded-full bg-gradient-to-tr from-emerald-950 via-emerald-800 to-emerald-600 shadow-[0_20px_80px_-20px_rgba(16,185,129,0.5)] active:scale-95 transition-all duration-75 flex items-center justify-center border-4 border-white/5 relative group overflow-hidden"
           >
             <div className="absolute inset-0 bg-white/5 group-active:bg-transparent" />
             <span className="text-3xl font-black text-white drop-shadow-md uppercase tracking-[0.2em]">Tasbih</span>

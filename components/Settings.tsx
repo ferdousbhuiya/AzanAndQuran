@@ -285,26 +285,7 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
                 {/* Adhan Preview */}
                 <div className="pt-2">
                   <button
-                    onClick={() => {
-                      const voice = ADHAN_OPTIONS.find(v => v.id === localSettings.adhan.voiceId);
-                      if (!voice) return;
-
-                      if (isPlaying) {
-                        // Stop logic if needed, but audioManager handles play by returning audio
-                        // Just let it play or implement stop in manager if sophisticated
-                        // For now simple preview
-                        setIsPlaying(false);
-                        if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-                      } else {
-                        setIsPlaying(true);
-                        audioManager.play(voice.url, () => setIsPlaying(false)).then(audio => {
-                          audioRef.current = audio;
-                        }).catch(() => {
-                          setIsPlaying(false);
-                          alert("Preview failed. Try downloading first.");
-                        });
-                      }
-                    }}
+                    onClick={playPreview}
                     className={`w-full p-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all ${isPlaying ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                   >
                     {isPlaying ? <VolumeX size={18} /> : <Volume2 size={18} />}

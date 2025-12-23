@@ -180,12 +180,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate, location, settings }) => {
         <div className="bg-[#f2f6f4] rounded-t-[2.5rem] px-6 pt-3 pb-24 space-y-3">
           {/* Main Action Grid */}
           <div className="grid grid-cols-3 gap-2">
-            <ActionItem icon={<BookOpen size={16} />} label="Quran" onClick={() => onNavigate(AppSection.Quran)} color="bg-emerald-800" />
-            <ActionItem icon={<CircleDot size={16} />} label="Tasbih" onClick={() => onNavigate(AppSection.Tasbih)} color="bg-emerald-700" />
-            <ActionItem icon={<Heart size={16} />} label="Dua" onClick={() => onNavigate(AppSection.Dua)} color="bg-emerald-600" />
-            <ActionItem icon={<Clock size={16} />} label="Adhan" onClick={() => onNavigate(AppSection.Adhan)} color="bg-emerald-500" />
-            <ActionItem icon={<Compass size={16} />} label="Qiblah" onClick={() => onNavigate(AppSection.Qiblah)} color="bg-emerald-400" />
-            <ActionItem icon={<Search size={16} />} label="Explore" onClick={() => onNavigate(AppSection.Explore)} color="bg-emerald-300" />
+            <ActionItem icon={<BookOpen size={24} />} label="Quran" onClick={() => onNavigate(AppSection.Quran)} color="bg-emerald-800" />
+            <ActionItem icon={<CircleDot size={24} />} label="Tasbih" onClick={() => onNavigate(AppSection.Tasbih)} color="bg-emerald-700" />
+            <ActionItem icon={<Heart size={24} />} label="Dua" onClick={() => onNavigate(AppSection.Dua)} color="bg-emerald-600" />
+            <ActionItem icon={<Clock size={24} />} label="Adhan" onClick={() => onNavigate(AppSection.Adhan)} color="bg-emerald-500" />
+            <ActionItem icon={<Compass size={24} />} label="Qiblah" onClick={() => onNavigate(AppSection.Qiblah)} color="bg-emerald-400" />
+            <ActionItem icon={<Search size={24} />} label="Explore" onClick={() => onNavigate(AppSection.Explore)} color="bg-emerald-300" />
           </div>
 
           {/* Inspiration Verse Card */}
