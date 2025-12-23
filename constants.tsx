@@ -15,8 +15,8 @@ export const TRANSLATIONS = [
 
 export const ADHAN_STYLES = [
   { id: 'full', name: 'Full Adhan' },
-  { id: '1v4', name: '1 Verse 4 Times' },
-  { id: '2v2', name: '2 Verses 2 Times' }
+  { id: '1v', name: '1 Verse Only' },
+  { id: '2v', name: 'First 2 Verses' }
 ];
 
 export const ADHAN_OPTIONS = [

@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchPrayerTimes } from '../services/api';
 import { PrayerTimes, AdhanSettings } from '../types';
-import { ADHAN_OPTIONS, PRAYER_METHODS, PRAYER_SCHOOLS } from '../constants';
-import { Bell, BellOff, Volume2, Loader2, Sliders, ChevronRight, AlertCircle, Check, Settings2, Compass, Clock, MapPin } from 'lucide-react';
+import { ADHAN_OPTIONS, ADHAN_STYLES, PRAYER_METHODS, PRAYER_SCHOOLS } from '../constants';
+import { Bell, BellOff, Volume2, VolumeX, Loader2, Sliders, ChevronRight, AlertCircle, Check, Settings2, Compass, Clock, MapPin } from 'lucide-react';
 
 interface AdhanProps {
   location: { lat: number, lng: number } | null;
@@ -25,17 +25,20 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'times' | 'config'>('times');
   const [nextPrayerInfo, setNextPrayerInfo] = useState<{ name: string, time: string, remaining: string } | null>(null);
-  
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const selectedAdhan = ADHAN_OPTIONS.find(a => a.id === settings.voiceId) || ADHAN_OPTIONS[0];
+  const selectedStyle = ADHAN_STYLES.find(s => s.id === settings.styleId) || ADHAN_STYLES[0];
 
   useEffect(() => {
     if (location) {
       setLoading(true);
       setError(null);
       fetchPrayerTimes(
-        location.lat, 
-        location.lng, 
-        settings.method, 
+        location.lat,
+        location.lng,
+        settings.method,
         settings.school,
         settings.fajrAngle,
         settings.ishaAngle
@@ -65,7 +68,7 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
     if (!times) return { current: null, next: null };
     const now = new Date();
     const currentMin = now.getHours() * 60 + now.getMinutes();
-    
+
     let current = 'Isha';
     let nextIdx = 0;
 
@@ -86,15 +89,15 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
       nextIdx = 0;
     }
 
-    return { 
-      current, 
-      next: prayerList[nextIdx] 
+    return {
+      current,
+      next: prayerList[nextIdx]
     };
   }, [prayerList, times]);
 
   useEffect(() => {
     if (!currentAndNext.next) return;
-    
+
     const updateCountdown = () => {
       const now = new Date();
       const [h, m] = currentAndNext.next!.time.split(':').map(Number);
@@ -106,7 +109,7 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
       const hh = Math.floor(diff / (1000 * 60 * 60));
       const mm = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const ss = Math.floor((diff % (1000 * 60)) / 1000);
-      
+
       setNextPrayerInfo({
         name: currentAndNext.next!.name,
         time: currentAndNext.next!.time,
@@ -119,10 +122,49 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
     return () => clearInterval(timer);
   }, [currentAndNext]);
 
-  const previewAdhan = () => {
-    const audio = new Audio(selectedAdhan.url);
-    audio.play().catch(e => console.error("Preview failed", e));
+  const stopAdhan = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    setIsPlaying(false);
   };
+
+  const previewAdhan = () => {
+    if (isPlaying) {
+      stopAdhan();
+      return;
+    }
+
+    const audio = new Audio(selectedAdhan.url);
+    audioRef.current = audio;
+    setIsPlaying(true);
+
+    audio.play().catch(e => {
+      console.error("Preview failed", e);
+      setIsPlaying(false);
+    });
+
+    // Handle partial length adhans
+    if (settings.styleId === '1v') {
+      setTimeout(() => {
+        if (audioRef.current === audio) stopAdhan();
+      }, 15000); // ~15 seconds for 1 verse
+    } else if (settings.styleId === '2v') {
+      setTimeout(() => {
+        if (audioRef.current === audio) stopAdhan();
+      }, 30000); // ~30 seconds for 2 verses
+    }
+
+    audio.onended = () => setIsPlaying(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) stopAdhan();
+    };
+  }, []);
 
   const handleToggleNotify = (prayerName: string) => {
     onUpdateSettings({
@@ -158,8 +200,8 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
             <span className="text-[10px] font-black uppercase tracking-widest">Auto-detected location</span>
           </div>
         </div>
-        <button 
-          onClick={() => setActiveTab(activeTab === 'times' ? 'config' : 'times')} 
+        <button
+          onClick={() => setActiveTab(activeTab === 'times' ? 'config' : 'times')}
           className={`p-4 rounded-2xl shadow-premium border transition-all active:scale-95 flex items-center gap-2 ${activeTab === 'config' ? 'bg-emerald-800 text-white border-emerald-800' : 'bg-white text-slate-600 border-white'}`}
         >
           {activeTab === 'times' ? <Settings2 size={20} /> : <Check size={20} />}
@@ -171,23 +213,23 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
         <div className="bg-emerald-950 rounded-[3rem] p-8 mb-8 text-white shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
           <div className="relative z-10">
-             <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">Next Prayer</span>
-                <Clock size={16} className="text-emerald-500" />
-             </div>
-             <div className="flex items-baseline gap-3 mb-2">
-                <h2 className="text-4xl font-black tracking-tighter">{nextPrayerInfo.name}</h2>
-                <span className="text-xl font-bold text-emerald-400/80">{formatTime12h(nextPrayerInfo.time)}</span>
-             </div>
-             <p className="text-xs font-medium text-emerald-100/60 tracking-wide">Starts in {nextPrayerInfo.remaining}</p>
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">Next Prayer</span>
+              <Clock size={16} className="text-emerald-500" />
+            </div>
+            <div className="flex items-baseline gap-3 mb-2">
+              <h2 className="text-4xl font-black tracking-tighter">{nextPrayerInfo.name}</h2>
+              <span className="text-xl font-bold text-emerald-400/80">{formatTime12h(nextPrayerInfo.time)}</span>
+            </div>
+            <p className="text-xs font-medium text-emerald-100/60 tracking-wide">Starts in {nextPrayerInfo.remaining}</p>
           </div>
         </div>
       )}
 
       {error && (
         <div className="bg-rose-50 border border-rose-100 p-6 rounded-[2.5rem] mb-8 flex items-center gap-4 text-rose-700 shadow-sm">
-           <AlertCircle size={24} />
-           <p className="text-xs font-bold leading-relaxed">{error}</p>
+          <AlertCircle size={24} />
+          <p className="text-xs font-bold leading-relaxed">{error}</p>
         </div>
       )}
 
@@ -196,17 +238,17 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
           {prayerList.map((prayer) => {
             const isCurrent = prayer.name === currentAndNext.current;
             const isNotify = settings.notifications[prayer.name];
-            
+
             return (
-              <div 
-                key={prayer.name} 
+              <div
+                key={prayer.name}
                 className={`group relative p-1 rounded-[3rem] transition-all duration-500 ${isCurrent ? 'bg-gradient-to-br from-emerald-500 to-emerald-800 shadow-xl shadow-emerald-900/20' : 'bg-white border border-white/60 shadow-premium'}`}
               >
                 <div className={`flex items-center gap-5 p-6 rounded-[2.8rem] transition-colors ${isCurrent ? 'bg-transparent text-white' : 'bg-white text-slate-800'}`}>
                   <div className={`w-14 h-14 rounded-[1.8rem] flex items-center justify-center text-2xl shadow-inner transition-transform group-hover:scale-110 ${isCurrent ? 'bg-white/10' : 'bg-slate-50'}`}>
                     {prayer.icon}
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className={`font-black text-[11px] uppercase tracking-[0.2em] ${isCurrent ? 'text-emerald-100' : 'text-slate-300'}`}>
@@ -218,7 +260,7 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
                   </div>
 
                   {prayer.name !== 'Sunrise' && (
-                    <button 
+                    <button
                       onClick={() => handleToggleNotify(prayer.name)}
                       className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all active:scale-90 ${isCurrent ? 'bg-white/20 text-white' : isNotify ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-200 border border-transparent'}`}
                     >
@@ -230,17 +272,17 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
             );
           })}
 
-          <button onClick={previewAdhan} className="w-full mt-6 p-7 bg-white border border-emerald-100 rounded-[3rem] shadow-premium flex items-center justify-between group active:scale-[0.98] transition-all">
+          <button onClick={previewAdhan} className={`w-full mt-6 p-7 border rounded-[3rem] shadow-premium flex items-center justify-between group active:scale-[0.98] transition-all ${isPlaying ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-emerald-100'}`}>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
-                 <Volume2 size={20} />
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${isPlaying ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
+                {isPlaying ? <VolumeX size={20} /> : <Volume2 size={20} />}
               </div>
               <div className="text-left">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 mb-0.5">Test Audio</p>
-                <h4 className="text-sm font-black text-slate-700 tracking-tight">{selectedAdhan.name}</h4>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 mb-0.5">{isPlaying ? 'Playing' : 'Test Audio'}</p>
+                <h4 className="text-sm font-black text-slate-700 tracking-tight">{selectedAdhan.name} ({selectedStyle.name})</h4>
               </div>
             </div>
-            <ChevronRight size={20} className="text-emerald-200 group-hover:text-emerald-600 transition-colors" />
+            <ChevronRight size={20} className={`text-emerald-200 group-hover:text-emerald-600 transition-colors ${isPlaying ? 'rotate-90 text-emerald-600' : ''}`} />
           </button>
         </div>
       ) : (
@@ -254,9 +296,9 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
             <div className="space-y-6">
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3 ml-2">Authority</label>
-                <select 
+                <select
                   value={settings.method}
-                  onChange={(e) => onUpdateSettings({...settings, method: parseInt(e.target.value)})}
+                  onChange={(e) => onUpdateSettings({ ...settings, method: parseInt(e.target.value) })}
                   className="w-full bg-slate-50 border border-slate-100 rounded-[1.8rem] p-5 text-sm font-bold focus:ring-2 ring-emerald-500/20 outline-none transition-all appearance-none cursor-pointer"
                 >
                   {PRAYER_METHODS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -268,9 +310,9 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3 ml-2">Asr School</label>
                   <div className="flex p-1 bg-slate-50 rounded-2xl border border-slate-100">
                     {PRAYER_SCHOOLS.map(s => (
-                      <button 
+                      <button
                         key={s.id}
-                        onClick={() => onUpdateSettings({...settings, school: s.id})}
+                        onClick={() => onUpdateSettings({ ...settings, school: s.id })}
                         className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${settings.school === s.id ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-400'}`}
                       >
                         {s.name.split(' ')[0]}
@@ -280,12 +322,22 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3 ml-2">Adhan Voice</label>
-                  <select 
+                  <select
                     value={settings.voiceId}
-                    onChange={(e) => onUpdateSettings({...settings, voiceId: e.target.value})}
+                    onChange={(e) => onUpdateSettings({ ...settings, voiceId: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer"
                   >
-                    {ADHAN_OPTIONS.map(v => <option key={v.id} value={v.id}>{v.name.split(' ')[0]}</option>)}
+                    {ADHAN_OPTIONS.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3 ml-2">Adhan Length</label>
+                  <select
+                    value={settings.styleId}
+                    onChange={(e) => onUpdateSettings({ ...settings, styleId: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer"
+                  >
+                    {ADHAN_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -295,7 +347,7 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
                   <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl"><Compass size={18} /></div>
                   <h3 className="font-black text-sm tracking-tight text-slate-800">Precision Angle Adjustment</h3>
                 </div>
-                
+
                 <div className="grid gap-8">
                   <div className="bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100">
                     <div className="flex justify-between items-center mb-4">
@@ -305,10 +357,10 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
                       </div>
                       <span className="text-lg font-black text-emerald-600 tabular-nums">{settings.fajrAngle || 18}°</span>
                     </div>
-                    <input 
-                      type="range" min="12" max="22" step="0.5" 
+                    <input
+                      type="range" min="12" max="22" step="0.5"
                       value={settings.fajrAngle || 18}
-                      onChange={(e) => onUpdateSettings({...settings, fajrAngle: parseFloat(e.target.value)})}
+                      onChange={(e) => onUpdateSettings({ ...settings, fajrAngle: parseFloat(e.target.value) })}
                       className="w-full h-2 bg-slate-200 rounded-full appearance-none accent-emerald-600 cursor-pointer"
                     />
                   </div>
@@ -321,15 +373,15 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
                       </div>
                       <span className="text-lg font-black text-emerald-600 tabular-nums">{settings.ishaAngle || 18}°</span>
                     </div>
-                    <input 
-                      type="range" min="12" max="22" step="0.5" 
+                    <input
+                      type="range" min="12" max="22" step="0.5"
                       value={settings.ishaAngle || 18}
-                      onChange={(e) => onUpdateSettings({...settings, ishaAngle: parseFloat(e.target.value)})}
+                      onChange={(e) => onUpdateSettings({ ...settings, ishaAngle: parseFloat(e.target.value) })}
                       className="w-full h-2 bg-slate-200 rounded-full appearance-none accent-emerald-600 cursor-pointer"
                     />
                   </div>
                 </div>
-                
+
                 <p className="mt-8 text-[10px] text-slate-400 font-medium leading-relaxed text-center px-4 italic">
                   Most regions use 15° to 19.5°. Increasing the angle makes Fajr earlier and Isha later.
                 </p>
@@ -337,7 +389,7 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
             </div>
           </section>
 
-          <button 
+          <button
             onClick={() => setActiveTab('times')}
             className="w-full bg-emerald-950 text-white p-7 rounded-[2.8rem] font-black uppercase tracking-[0.3em] text-xs shadow-2xl shadow-emerald-950/30 active:scale-95 transition-all flex items-center justify-center gap-3"
           >
