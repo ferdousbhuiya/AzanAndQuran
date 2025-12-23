@@ -1,6 +1,9 @@
+```typescript
 import React, { useState, useEffect } from 'react';
-import { AppSection, PrayerTimes, AppSettings } from '../types.ts';
-import { fetchPrayerTimes } from '../services/api.ts';
+import { AppSection, PrayerTimes, AppSettings } from '../types';
+import { fetchPrayerTimes } from '../services/api';
+import { audioManager } from '../services/audioManager';
+import { ADHAN_OPTIONS } from '../constants';
 import { BookOpen, CircleDot, Clock, Heart, MapPin, ChevronRight, Sparkles, Compass, Search } from 'lucide-react';
 
 interface HomeProps {
@@ -14,7 +17,7 @@ const formatTime12h = (time24: string) => {
   const [hours, minutes] = time24.split(':').map(Number);
   const period = hours >= 12 ? 'PM' : 'AM';
   const h12 = hours % 12 || 12;
-  return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  return `${ h12 }:${ minutes.toString().padStart(2, '0') } ${ period } `;
 };
 
 const Home: React.FC<HomeProps> = ({ onNavigate, location, settings }) => {
@@ -62,18 +65,36 @@ const Home: React.FC<HomeProps> = ({ onNavigate, location, settings }) => {
       const target = new Date();
       target.setHours(h, m, 0, 0);
 
+      // Logic check for Adhan trigger (if within 1 second of target)
+      // Note: We need to be careful not to trigger repeatedly. 
+      // A simple way is to check if diff is between 0 and 1000.
+      // Or store 'lastPlayed' state. but setInterval runs every 1s.
+      
+      const diff = target.getTime() - now.getTime();
+      
+      // Trigger Adhan logic
+      if (Math.abs(diff) < 1500 && settings.adhan.notifications[nextPrayer.name]) {
+         const voice = ADHAN_OPTIONS.find(v => v.id === settings.adhan.voiceId) || ADHAN_OPTIONS[0];
+         let url = voice.url;
+         if (nextPrayer.name === 'Fajr' && voice.fajrUrl) {
+            url = voice.fajrUrl;
+         }
+         console.log(`Triggering Adhan for ${ nextPrayer.name }`);
+         audioManager.play(url).catch(e => console.error("Auto-play failed", e));
+      }
+
       if (target < now) target.setDate(target.getDate() + 1);
 
-      const diff = target.getTime() - now.getTime();
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      const remainingRef = target.getTime() - now.getTime();
+      const hours = Math.floor(remainingRef / (1000 * 60 * 60));
+      const minutes = Math.floor((remainingRef % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remainingRef % (1000 * 60)) / 1000);
 
-      setRemainingTime(`${hours}h ${minutes}m ${seconds}s`);
+      setRemainingTime(`${ hours }h ${ minutes }m ${ seconds } s`);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [nextPrayer]);
+  }, [nextPrayer, settings.adhan]);
 
   const calculateNextPrayer = (times: PrayerTimes) => {
     const now = new Date();
@@ -191,21 +212,21 @@ const Home: React.FC<HomeProps> = ({ onNavigate, location, settings }) => {
         </div>
       </div>
       <style>{`
-        @keyframes spin-slow {
+@keyframes spin - slow {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 12s linear infinite;
-        }
-      `}</style>
+}
+        .animate - spin - slow {
+  animation: spin - slow 12s linear infinite;
+}
+`}</style>
     </div>
   );
 };
 
 const ActionItem: React.FC<{ icon: any, label: string, onClick: any, color: string }> = ({ icon, label, onClick, color }) => (
   <button onClick={onClick} className="flex flex-col items-center gap-2 group">
-    <div className={`w-full aspect-square rounded-[1.8rem] flex items-center justify-center text-white shadow-xl ${color} active:scale-90 transition-all group-hover:-translate-y-1 duration-500 border border-white/10`}>
+    <div className={`w - full aspect - square rounded - [1.8rem] flex items - center justify - center text - white shadow - xl ${ color } active: scale - 90 transition - all group - hover: -translate - y - 1 duration - 500 border border - white / 10`}>
       {icon}
     </div>
     <span className="text-[8px] font-black uppercase tracking-[0.1em] text-slate-400 group-hover:text-emerald-900 transition-colors truncate w-full">{label}</span>

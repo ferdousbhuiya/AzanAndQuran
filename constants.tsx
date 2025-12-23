@@ -20,10 +20,36 @@ export const ADHAN_STYLES = [
 ];
 
 export const ADHAN_OPTIONS = [
-  { id: 'makkah', name: 'Makkah Al-Mukarramah', url: 'https://www.islamcan.com/adhan/audio/adhan-makkah.mp3' },
-  { id: 'madinah', name: 'Madinah Al-Munawwarah', url: 'https://www.islamcan.com/adhan/audio/adhan-madinah.mp3' },
-  { id: 'egypt', name: 'Abdul Basit (Egypt)', url: 'https://www.islamcan.com/adhan/audio/adhan-egypt.mp3' },
-  { id: 'turkey', name: 'Istanbul (Turkey)', url: 'https://www.islamcan.com/adhan/audio/adhan-turkey.mp3' }
+  {
+    id: 'makkah',
+    name: 'Makkah Al-Mukarramah',
+    url: 'https://www.islamcan.com/adhan/audio/adhan-makkah.mp3',
+    fajrUrl: 'https://www.islamcan.com/adhan/audio/adhan-makkah-2.mp3'
+  },
+  {
+    id: 'madinah',
+    name: 'Madinah Al-Munawwarah',
+    url: 'https://www.islamcan.com/adhan/audio/adhan-madinah.mp3',
+    fajrUrl: 'https://www.islamcan.com/adhan/audio/adhan-madinah.mp3'
+  },
+  {
+    id: 'egypt',
+    name: 'Abdul Basit (Egypt)',
+    url: 'https://www.islamcan.com/adhan/audio/adhan-egypt.mp3',
+    fajrUrl: 'https://www.islamcan.com/adhan/audio/adhan-egypt.mp3'
+  },
+  {
+    id: 'kuwait',
+    name: 'Mishary Rashid (Kuwait)',
+    url: 'https://www.islamcan.com/adhan/audio/adhan-alafasy.mp3',
+    fajrUrl: 'https://www.islamcan.com/adhan/audio/adhan-fajr.mp3' // Generic beautiful Fajr
+  },
+  {
+    id: 'turkey',
+    name: 'Istanbul (Turkey)',
+    url: 'https://www.islamcan.com/adhan/audio/adhan-turkey.mp3',
+    fajrUrl: 'https://www.islamcan.com/adhan/audio/adhan-turkey.mp3'
+  }
 ];
 
 export const ARABIC_FONTS: { id: string, name: string }[] = [

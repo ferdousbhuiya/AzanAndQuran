@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchPrayerTimes } from '../services/api';
+import { audioManager } from '../services/audioManager';
 import { PrayerTimes, AdhanSettings } from '../types';
 import { ADHAN_OPTIONS, ADHAN_STYLES, PRAYER_METHODS, PRAYER_SCHOOLS } from '../constants';
 import { Bell, BellOff, Volume2, VolumeX, Loader2, Sliders, ChevronRight, AlertCircle, Check, Settings2, Compass, Clock, MapPin } from 'lucide-react';
@@ -137,12 +138,12 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
       return;
     }
 
-    const audio = new Audio(selectedAdhan.url);
-    audioRef.current = audio;
+    const audioUrl = selectedAdhan.url;
     setIsPlaying(true);
 
-    audio.play().then(() => {
-      console.log("Adhan preview started:", selectedAdhan.url);
+    audioManager.play(audioUrl, () => setIsPlaying(false)).then(audio => {
+      audioRef.current = audio;
+      console.log("Adhan preview started from manager:", audioUrl);
     }).catch(e => {
       console.error("Preview failed", e);
       alert("Audio playback failed. Please ensure your device volume is up and you have allowed sound for this site.");
@@ -152,15 +153,13 @@ const Adhan: React.FC<AdhanProps> = ({ location, settings, onUpdateSettings }) =
     // Handle partial length adhans
     if (settings.styleId === '1v') {
       setTimeout(() => {
-        if (audioRef.current === audio) stopAdhan();
-      }, 15000); // ~15 seconds for 1 verse
+        if (audioRef.current) stopAdhan();
+      }, 15000);
     } else if (settings.styleId === '2v') {
       setTimeout(() => {
-        if (audioRef.current === audio) stopAdhan();
-      }, 30000); // ~30 seconds for 2 verses
+        if (audioRef.current) stopAdhan();
+      }, 30000);
     }
-
-    audio.onended = () => setIsPlaying(false);
   };
 
   useEffect(() => {

@@ -2,12 +2,28 @@
 import React, { useState } from 'react';
 import { AppSettings, QuranFont } from '../types';
 import { TRANSLATIONS, ARABIC_FONTS, ADHAN_OPTIONS, ADHAN_STYLES, PRAYER_METHODS, PRAYER_SCHOOLS, RECITERS } from '../constants';
-import { Save, Book, Volume2, VolumeX, Target, Compass, Bell, Type, User, Info, Smartphone, RefreshCw } from 'lucide-react';
+import { Save, Book, Volume2, VolumeX, Target, Compass, Bell, Type, User, Info, Smartphone, RefreshCw, Download } from 'lucide-react';
+import { audioManager } from '../services/audioManager';
 
 interface SettingsProps {
   settings: AppSettings;
   onSave: (newSettings: AppSettings) => void;
 }
+
+const ToggleItem: React.FC<{ label: string, sub: string, active: boolean, onToggle: () => void }> = ({ label, sub, active, onToggle }) => (
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="font-black text-slate-800 text-[11px] tracking-tight uppercase">{label}</p>
+      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{sub}</p>
+    </div>
+    <div
+      onClick={onToggle}
+      className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${active ? 'bg-emerald-600' : 'bg-slate-200'}`}
+    >
+      <div className={`w-3 h-3 bg-white rounded-full transition-transform ${active ? 'translate-x-5' : 'translate-x-0'}`} />
+    </div>
+  </div>
+);
 
 const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
@@ -201,155 +217,185 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                {/* Adhan Voice Selection */}
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 ml-2">Adhan Voice</label>
-                  <select
-                    value={localSettings.adhan.voiceId}
-                    onChange={(e) => setLocalSettings({ ...localSettings, adhan: { ...localSettings.adhan, voiceId: e.target.value } })}
-                    className="w-full bg-slate-50 border-none rounded-2xl p-4 text-[11px] font-black uppercase outline-none"
-                  >
-                    {ADHAN_OPTIONS.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                  </select>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Adhan Voice</label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={localSettings.adhan.voiceId}
+                      onChange={(e) => setLocalSettings({ ...localSettings, adhan: { ...localSettings.adhan, voiceId: e.target.value } })}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 ring-emerald-500/20 outline-none"
+                    >
+                      {ADHAN_OPTIONS.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                    </select>
+                    <button
+                      onClick={async () => {
+                        const voice = ADHAN_OPTIONS.find(v => v.id === localSettings.adhan.voiceId);
+                        if (voice) {
+                          try {
+                            const btn = document.getElementById('dl-btn');
+                            if (btn) btn.innerHTML = '...';
+                            await audioManager.downloadVoice(voice.id, ADHAN_OPTIONS);
+                            if (btn) btn.innerHTML = '✓';
+                            setTimeout(() => { if (btn) btn.innerHTML = '↓'; }, 2000);
+                          } catch (e) {
+                            alert("Download failed. Check connection.");
+                          }
+                        }
+                      }}
+                      id="dl-btn"
+                      className="bg-emerald-50 text-emerald-600 p-3 rounded-xl hover:bg-emerald-100 transition-colors"
+                      title="Download for Offline"
+                    >
+                      <Download size={20} />
+                    </button>
+                  </div>
                 </div>
+
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 ml-2">Adhan Length</label>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Adhan Length</label>
                   <select
                     value={localSettings.adhan.styleId}
                     onChange={(e) => setLocalSettings({ ...localSettings, adhan: { ...localSettings.adhan, styleId: e.target.value } })}
-                    className="w-full bg-slate-50 border-none rounded-2xl p-4 text-[11px] font-black uppercase outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 ring-emerald-500/20 outline-none"
                   >
                     {ADHAN_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
-              </div>
 
-              <button
-                onClick={playPreview}
-                className={`w-full p-5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 ${isPlaying ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}
-              >
-                {isPlaying ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                <span className="text-[10px] font-black uppercase tracking-widest">{isPlaying ? 'Stop Preview' : 'Preview Adhan'}</span>
-              </button>
-            </div>
-          </div>
-        </section>
+                {/* Adhan Preview */}
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      const voice = ADHAN_OPTIONS.find(v => v.id === localSettings.adhan.voiceId);
+                      if (!voice) return;
 
-        {/* General Device Settings */}
-        <section>
-          <h2 className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 ml-4">
-            <Smartphone size={14} /> Interaction
-          </h2>
-          <div className="bg-white p-8 rounded-[3.5rem] border border-white shadow-premium">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-black text-slate-800 text-sm tracking-tight">Automatic Location</p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Use GPS for prayer times</p>
+                      if (isPlaying) {
+                        // Stop logic if needed, but audioManager handles play by returning audio
+                        // Just let it play or implement stop in manager if sophisticated
+                        // For now simple preview
+                        setIsPlaying(false);
+                        if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+                      } else {
+                        setIsPlaying(true);
+                        audioManager.play(voice.url, () => setIsPlaying(false)).then(audio => {
+                          audioRef.current = audio;
+                        }).catch(() => {
+                          setIsPlaying(false);
+                          alert("Preview failed. Try downloading first.");
+                        });
+                      }
+                    }}
+                    className={`w-full p-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all ${isPlaying ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    {isPlaying ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                    {isPlaying ? 'Stop Preview' : 'Preview Adhan Audio'}
+                  </button>
                 </div>
-                <div
-                  onClick={() => setLocalSettings({ ...localSettings, adhan: { ...localSettings.adhan, autoLocation: !localSettings.adhan.autoLocation } })}
-                  className={`w-12 h-6 rounded-full relative p-1 cursor-pointer transition-colors ${localSettings.adhan.autoLocation ? 'bg-emerald-600' : 'bg-slate-200'}`}
-                >
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${localSettings.adhan.autoLocation ? 'translate-x-6' : 'translate-x-0'}`} />
-                </div>
               </div>
+            </section>
 
-              {!localSettings.adhan.autoLocation && (
-                <div className="animate-in slide-in-from-top duration-300">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 ml-2">Set Manual Address</label>
-                  <div className="flex gap-2">
-                    <input
-                      value={localSettings.adhan.manualLocation?.address || ''}
-                      onChange={(e) => setLocalSettings({
-                        ...localSettings,
-                        adhan: {
-                          ...localSettings.adhan,
-                          manualLocation: {
-                            ...(localSettings.adhan.manualLocation || { lat: 0, lng: 0, address: '' }),
-                            address: e.target.value
-                          }
-                        }
-                      })}
-                      placeholder="City, Country"
-                      className="flex-1 bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
-                    />
-                    <button
-                      onClick={async () => {
-                        const addr = localSettings.adhan.manualLocation?.address;
-                        if (!addr) return;
-                        try {
-                          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`);
-                          const data = await res.json();
-                          if (data && data[0]) {
-                            setLocalSettings({
-                              ...localSettings,
-                              adhan: {
-                                ...localSettings.adhan,
-                                manualLocation: {
-                                  address: data[0].display_name,
-                                  lat: parseFloat(data[0].lat),
-                                  lng: parseFloat(data[0].lon)
-                                }
-                              }
-                            });
-                            alert("Location updated successfully!");
-                          } else {
-                            alert("Location not found.");
-                          }
-                        } catch (e) {
-                          alert("Error searching location.");
-                        }
-                      }}
-                      className="bg-emerald-100 text-emerald-800 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+            {/* General Device Settings */}
+            <section>
+              <h2 className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 ml-4">
+                <Smartphone size={14} /> Interaction
+              </h2>
+              <div className="bg-white p-8 rounded-[3.5rem] border border-white shadow-premium">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-black text-slate-800 text-sm tracking-tight">Automatic Location</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Use GPS for prayer times</p>
+                    </div>
+                    <div
+                      onClick={() => setLocalSettings({ ...localSettings, adhan: { ...localSettings.adhan, autoLocation: !localSettings.adhan.autoLocation } })}
+                      className={`w-12 h-6 rounded-full relative p-1 cursor-pointer transition-colors ${localSettings.adhan.autoLocation ? 'bg-emerald-600' : 'bg-slate-200'}`}
                     >
-                      Find
-                    </button>
+                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${localSettings.adhan.autoLocation ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </div>
                   </div>
-                  {localSettings.adhan.manualLocation?.lat !== 0 && (
-                    <p className="text-[9px] text-emerald-600 font-bold mt-2 ml-2 uppercase tracking-tighter">
-                      Coordinates: {localSettings.adhan.manualLocation?.lat.toFixed(4)}, {localSettings.adhan.manualLocation?.lng.toFixed(4)}
-                    </p>
+
+                  {!localSettings.adhan.autoLocation && (
+                    <div className="animate-in slide-in-from-top duration-300">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 ml-2">Set Manual Address</label>
+                      <div className="flex gap-2">
+                        <input
+                          value={localSettings.adhan.manualLocation?.address || ''}
+                          onChange={(e) => setLocalSettings({
+                            ...localSettings,
+                            adhan: {
+                              ...localSettings.adhan,
+                              manualLocation: {
+                                ...(localSettings.adhan.manualLocation || { lat: 0, lng: 0, address: '' }),
+                                address: e.target.value
+                              }
+                            }
+                          })}
+                          placeholder="City, Country"
+                          className="flex-1 bg-slate-50 border-none rounded-2xl p-5 text-sm font-bold outline-none"
+                        />
+                        <button
+                          onClick={async () => {
+                            const addr = localSettings.adhan.manualLocation?.address;
+                            if (!addr) return;
+                            try {
+                              const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`);
+                              const data = await res.json();
+                              if (data && data[0]) {
+                                setLocalSettings({
+                                  ...localSettings,
+                                  adhan: {
+                                    ...localSettings.adhan,
+                                    manualLocation: {
+                                      address: data[0].display_name,
+                                      lat: parseFloat(data[0].lat),
+                                      lng: parseFloat(data[0].lon)
+                                    }
+                                  }
+                                });
+                                alert("Location updated successfully!");
+                              } else {
+                                alert("Location not found.");
+                              }
+                            } catch (e) {
+                              alert("Error searching location.");
+                            }
+                          }}
+                          className="bg-emerald-100 text-emerald-800 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                        >
+                          Find
+                        </button>
+                      </div>
+                      {localSettings.adhan.manualLocation?.lat !== 0 && (
+                        <p className="text-[9px] text-emerald-600 font-bold mt-2 ml-2 uppercase tracking-tighter">
+                          Coordinates: {localSettings.adhan.manualLocation?.lat.toFixed(4)}, {localSettings.adhan.manualLocation?.lng.toFixed(4)}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full mt-8 p-5 bg-slate-50 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
-            >
-              <RefreshCw size={16} className="text-slate-400 group-hover:rotate-180 transition-transform duration-500" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sync Local Database</span>
-            </button>
-          </div>
-        </section>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full mt-8 p-5 bg-slate-50 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
+                >
+                  <RefreshCw size={16} className="text-slate-400 group-hover:rotate-180 transition-transform duration-500" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sync Local Database</span>
+                </button>
+              </div>
+            </section>
 
-        <footer className="text-center px-10">
-          <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em] mb-4">Noor Companion v1.2</p>
-          <div className="flex justify-center gap-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
+            <footer className="text-center px-10">
+              <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em] mb-4">Noor Companion v1.2</p>
+              <div className="flex justify-center gap-4">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
+              </div>
+            </footer>
           </div>
-        </footer>
       </div>
-    </div>
-  );
+      );
 };
 
-const ToggleItem: React.FC<{ label: string, sub: string, active: boolean, onToggle: () => void }> = ({ label, sub, active, onToggle }) => (
-  <div className="flex items-center justify-between">
-    <div>
-      <p className="font-black text-slate-800 text-[11px] tracking-tight uppercase">{label}</p>
-      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{sub}</p>
-    </div>
-    <div
-      onClick={onToggle}
-      className={`w-10 h-5 rounded-full relative p-1 cursor-pointer transition-colors ${active ? 'bg-emerald-600' : 'bg-slate-200'}`}
-    >
-      <div className={`w-3 h-3 bg-white rounded-full transition-transform ${active ? 'translate-x-5' : 'translate-x-0'}`} />
-    </div>
-  </div>
-);
-
-export default SettingsView;
+      export default SettingsView;
