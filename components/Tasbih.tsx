@@ -121,7 +121,7 @@ const Tasbih: React.FC<TasbihProps> = ({ initialDhikr, onClearInitial }) => {
       const transcript = event.results[0][0].transcript;
       setIsProcessingAI(true);
       try {
-        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || '';
+        const apiKey = process.env.API_KEY || '';
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
@@ -147,7 +147,7 @@ const Tasbih: React.FC<TasbihProps> = ({ initialDhikr, onClearInitial }) => {
         setNewImage(reader.result as string);
         setIsProcessingAI(true);
         try {
-          const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || '';
+          const apiKey = process.env.API_KEY || '';
           const ai = new GoogleGenAI({ apiKey });
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',

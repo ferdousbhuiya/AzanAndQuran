@@ -18,9 +18,10 @@ const Explore: React.FC<ExploreProps> = ({ location }) => {
     setQueryType(type);
 
     try {
-      const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || '';
+      // Vite config defines process.env.API_KEY
+      const apiKey = process.env.API_KEY || '';
       if (!apiKey) {
-        console.error("Missing Google API Key");
+        console.error("Missing Google API Key (VITE_GOOGLE_API_KEY)");
         setLoading(false);
         return;
       }

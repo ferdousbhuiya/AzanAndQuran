@@ -65,13 +65,18 @@ export class AudioManager {
         const voice = options.find(v => v.id === voiceId);
         if (!voice) throw new Error("Voice not found");
 
-        await this.cacheAudio(voice.url);
-        if (voice.fajrUrl && voice.fajrUrl !== voice.url) {
-            try {
+        try {
+            await this.cacheAudio(voice.url);
+            if (voice.fajrUrl && voice.fajrUrl !== voice.url) {
                 await this.cacheAudio(voice.fajrUrl);
-            } catch (e) {
-                console.warn("Retrying Fajr audio with fallback or ignoring...", e);
             }
+        } catch (e: any) {
+            console.error("Download failed:", e);
+            if (e.name === 'TypeError') {
+                // Network error or CORS issue
+                throw new Error("Network error. Please check connection or CORS settings.");
+            }
+            throw e;
         }
     }
 }
